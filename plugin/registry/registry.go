@@ -5,6 +5,7 @@ import (
 	"github.com/vulcand/vulcand/plugin"
 	"github.com/vulcand/vulcand/plugin/cbreaker"
 	"github.com/vulcand/vulcand/plugin/connlimit"
+	"github.com/vulcand/vulcand/plugin/mirror"
 	"github.com/vulcand/vulcand/plugin/ratelimit"
 	"github.com/vulcand/vulcand/plugin/rewrite"
 	"github.com/vulcand/vulcand/plugin/trace"
@@ -19,6 +20,7 @@ func GetRegistry() *plugin.Registry {
 		rewrite.GetSpec(),
 		cbreaker.GetSpec(),
 		trace.GetSpec(),
+		mirror.GetSpec(),
 	}
 
 	for _, spec := range specs {
