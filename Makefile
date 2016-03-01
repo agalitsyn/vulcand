@@ -11,7 +11,21 @@ GO15VENDOREXPERIMENT := 1
 ETCD_FLAGS := VULCAND_TEST_ETCD_NODES=${ETCD_NODES}
 VULCAN_FLAGS := VULCAND_TEST_ETCD_NODES=${ETCD_NODES} VULCAND_TEST_ETCD_PREFIX=${PREFIX} VULCAND_TEST_API_URL=${API_URL} VULCAND_TEST_SERVICE_URL=${SERVICE_URL} VULCAND_TEST_SEAL_KEY=${SEAL_KEY}
 
+get-tools:
+	go get -u github.com/tools/godep
+
+get-deps:
+	go get -u github.com/codegangsta/cli
+
+get-vendored-deps:
+	godep restore
+
+# Remove in go 1.6
+# see https://github.com/golang/go/issues/11659
 test: clean
+	go test $$(go list ./... | grep -v '/vendor/')
+
+test-with-coverage: clean
 	go test -v ./... -cover
 
 test-with-etcd: clean

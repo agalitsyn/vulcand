@@ -3,11 +3,12 @@ package plugin
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"reflect"
+
 	"github.com/codegangsta/cli"
 	"github.com/vulcand/route"
 	"github.com/vulcand/vulcand/router"
-	"net/http"
-	"reflect"
 )
 
 // Middleware specification, used to construct new middlewares and plug them into CLI API and backends
