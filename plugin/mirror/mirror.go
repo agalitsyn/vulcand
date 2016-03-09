@@ -20,6 +20,10 @@ const (
 	DefaultTimeoutDuration             = 30 * time.Second
 	DefaultKeepAliveDuration           = 30 * time.Second
 	DefaultTLSHandshakeTimeoutDuration = 10 * time.Second
+	SourceExtractorClientIpVar         = "client.ip"
+	SourceExtractorHostVar             = "request.host"
+	SourceExtractorHeaderVarPrefix     = "request.header."
+	DefaultSourceExtractorVar          = SourceExtractorClientIpVar
 )
 
 func GetSpec() *plugin.MiddlewareSpec {
@@ -32,13 +36,13 @@ func GetSpec() *plugin.MiddlewareSpec {
 }
 
 type Config struct {
-	Scheme              string
-	Host                string
-	Timeout             time.Duration
-	KeepAlive           time.Duration
-	TLSHandshakeTimeout time.Duration
-	Connections         int64
-	Variable            string
+	Scheme               string
+	Host                 string
+	Timeout              time.Duration
+	KeepAlive            time.Duration
+	TLSHandshakeTimeout  time.Duration
+	Connections          int64
+	SourceExtractorParam string
 }
 
 type Handler struct {
@@ -97,7 +101,8 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}()
 }
 
-func New(scheme, host string, timeout, keepalive, tlshandshaketimeout time.Duration, connections int64, variable string) (*Config, error) {
+func New(scheme, host string, timeout, keepalive, tlshandshaketimeout time.Duration,
+	connections int64, variable string) (*Config, error) {
 	if scheme == "" || host == "" {
 		return nil, fmt.Errorf("Scheme and host can't be empty.")
 	}
@@ -116,23 +121,23 @@ func New(scheme, host string, timeout, keepalive, tlshandshaketimeout time.Durat
 	if connections < 0 {
 		return nil, fmt.Errorf("Connections limit can't be less zero.")
 	}
-	if strings.HasPrefix(variable, "request.header.") {
-		header := strings.TrimPrefix(variable, "request.header.")
+	if strings.HasPrefix(variable, SourceExtractorHeaderVarPrefix) {
+		header := strings.TrimPrefix(variable, SourceExtractorHeaderVarPrefix)
 		if len(header) == 0 {
 			return nil, fmt.Errorf("Wrong header: %s", header)
 		}
 	}
-	if variable != "client.ip" && variable != "request.host" {
+	if variable != SourceExtractorClientIpVar && variable != SourceExtractorHostVar {
 		return nil, fmt.Errorf("Unsupported limiting variable: '%s'", variable)
 	}
 	return &Config{
-		Scheme:              scheme,
-		Host:                host,
-		Timeout:             timeout,
-		KeepAlive:           keepalive,
-		TLSHandshakeTimeout: tlshandshaketimeout,
-		Connections:         connections,
-		Variable:            variable,
+		Scheme:               scheme,
+		Host:                 host,
+		Timeout:              timeout,
+		KeepAlive:            keepalive,
+		TLSHandshakeTimeout:  tlshandshaketimeout,
+		Connections:          connections,
+		SourceExtractorParam: variable,
 	}, nil
 }
 
@@ -151,7 +156,7 @@ func (c *Config) NewHandler(next http.Handler) (http.Handler, error) {
 	handler := &Handler{next: next, cfg: *c, proxy: proxy}
 
 	if c.Connections > 0 {
-		extract, err := utils.NewExtractor("client.ip")
+		extract, err := utils.NewExtractor(c.SourceExtractorParam)
 		if err != nil {
 			return nil, err
 		}
@@ -167,9 +172,9 @@ func (c *Config) NewHandler(next http.Handler) (http.Handler, error) {
 }
 
 func (c *Config) String() string {
-	return fmt.Sprintf("scheme=%s, host=%s, timeout=%d, keepalive=%d, "+
-		"tlshandshaketimeout=%d, connections=%d, variable=%s",
-		c.Scheme, c.Host, c.Timeout, c.KeepAlive, c.TLSHandshakeTimeout, c.Connections, c.Variable)
+	return fmt.Sprintf(
+		"scheme=%s, host=%s, timeout=%d, keepalive=%d, tlshandshaketimeout=%d, connections=%d, variable=%s",
+		c.Scheme, c.Host, c.Timeout, c.KeepAlive, c.TLSHandshakeTimeout, c.Connections, c.SourceExtractorParam)
 }
 
 func FromOther(c Config) (plugin.Middleware, error) {
@@ -180,7 +185,7 @@ func FromOther(c Config) (plugin.Middleware, error) {
 		time.Duration(c.KeepAlive),
 		time.Duration(c.TLSHandshakeTimeout),
 		c.Connections,
-		c.Variable,
+		c.SourceExtractorParam,
 	)
 }
 
@@ -204,6 +209,6 @@ func CliFlags() []cli.Flag {
 		cli.DurationFlag{Name: "keepalive", Usage: "Transport KeepAlive", Value: DefaultKeepAliveDuration},
 		cli.DurationFlag{Name: "tlshandshaketimeout", Usage: "Transport TLSHandshakeTimeout", Value: DefaultTLSHandshakeTimeoutDuration},
 		cli.IntFlag{Name: "connections", Usage: "Limit amount of connections allowed for mirroring per variable value"},
-		cli.StringFlag{Name: "variable", Value: "client.ip", Usage: "Limit variable to rate against, e.g. client.ip, request.host or request.header.X-Header"},
+		cli.StringFlag{Name: "variable", Usage: "Limit variable to rate against, e.g. client.ip, request.host or request.header.X-Header", Value: DefaultSourceExtractorVar},
 	}
 }

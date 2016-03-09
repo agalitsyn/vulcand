@@ -97,7 +97,7 @@ func (s *MirrorSuite) TestAuthFromCli(c *C) {
 		c.Assert(m.KeepAlive, Equals, DefaultKeepAliveDuration)
 		c.Assert(m.TLSHandshakeTimeout, Equals, DefaultTLSHandshakeTimeoutDuration)
 		c.Assert(m.Connections, Equals, int64(0))
-		c.Assert(m.Variable, Equals, "client.ip")
+		c.Assert(m.SourceExtractorParam, Equals, "client.ip")
 	}
 
 	app.Flags = CliFlags()
